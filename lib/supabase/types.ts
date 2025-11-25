@@ -15,6 +15,8 @@ export interface Database {
           name: string
           email: string | null
           hourly_rate: number
+          pay_cycle_interval: 'weekly' | 'biweekly' | 'monthly' | null
+          pay_cycle_start_date: string | null
           created_at: string
           updated_at: string
         }
@@ -23,6 +25,8 @@ export interface Database {
           name: string
           email?: string | null
           hourly_rate: number
+          pay_cycle_interval?: 'weekly' | 'biweekly' | 'monthly' | null
+          pay_cycle_start_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -31,6 +35,8 @@ export interface Database {
           name?: string
           email?: string | null
           hourly_rate?: number
+          pay_cycle_interval?: 'weekly' | 'biweekly' | 'monthly' | null
+          pay_cycle_start_date?: string | null
           created_at?: string
           updated_at?: string
         }
@@ -104,3 +110,5 @@ export type TimeEntryUpdate = Database["public"]["Tables"]["time_entries"]["Upda
 export type TimeEntryWithClient = TimeEntry & {
   clients: Client
 }
+
+export type PayCycleInterval = 'weekly' | 'biweekly' | 'monthly'

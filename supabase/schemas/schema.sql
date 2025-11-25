@@ -14,9 +14,14 @@ CREATE TABLE IF NOT EXISTS clients (
   name TEXT NOT NULL,
   email TEXT,
   hourly_rate DECIMAL(10, 2) NOT NULL DEFAULT 0,
+  pay_cycle_interval TEXT CHECK (pay_cycle_interval IS NULL OR pay_cycle_interval IN ('weekly', 'biweekly', 'monthly')),
+  pay_cycle_start_date DATE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
+
+COMMENT ON COLUMN clients.pay_cycle_interval IS 'Payment cycle frequency: weekly, biweekly, or monthly';
+COMMENT ON COLUMN clients.pay_cycle_start_date IS 'Start date for calculating pay cycle periods';
 
 CREATE TABLE IF NOT EXISTS time_entries (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
