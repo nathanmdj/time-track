@@ -74,12 +74,13 @@ export function TimeEntryForm({ open, onOpenChange, onSubmit, clients }: TimeEnt
 
     try {
       const startTime = new Date(`${formData.date}T${formData.start_time}:00`);
-      const endTime = new Date(`${formData.date}T${formData.end_time}:00`);
+      let endTime = new Date(`${formData.date}T${formData.end_time}:00`);
       const breakMinutes = parseInt(formData.break_minutes) || 0;
 
+      // Handle overnight shifts: if end time is before or equal to start time,
+      // assume the shift ends the next day
       if (endTime <= startTime) {
-        setError("End time must be after start time");
-        return;
+        endTime = new Date(endTime.getTime() + 24 * 60 * 60 * 1000);
       }
 
       const totalMs = endTime.getTime() - startTime.getTime();
