@@ -8,7 +8,7 @@ import { ClientCard } from "./client-card";
 import { ClientForm } from "./client-form";
 import { createClient, updateClient, deleteClient } from "@/app/actions";
 import { calculateClientHours } from "@/lib/utils/calculations";
-import type { Client, TimeEntry } from "@/lib/supabase/types";
+import type { Client, TimeEntry, PayCycleInterval } from "@/lib/supabase/types";
 
 interface ClientListProps {
   initialClients: Client[];
@@ -21,11 +21,19 @@ export function ClientList({ initialClients, initialTimeEntries }: ClientListPro
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | undefined>();
 
-  const handleCreate = async (data: { name: string; email: string; hourly_rate: number }) => {
+  const handleCreate = async (data: {
+    name: string;
+    email: string;
+    hourly_rate: number;
+    pay_cycle_interval: PayCycleInterval | "";
+    pay_cycle_start_date: string;
+  }) => {
     const result = await createClient({
       name: data.name,
       email: data.email || null,
       hourly_rate: data.hourly_rate,
+      pay_cycle_interval: data.pay_cycle_interval || null,
+      pay_cycle_start_date: data.pay_cycle_start_date || null,
     });
     if (result.success) {
       setClients((prev) => [...prev, result.data].sort((a, b) => a.name.localeCompare(b.name)));
@@ -34,12 +42,20 @@ export function ClientList({ initialClients, initialTimeEntries }: ClientListPro
     }
   };
 
-  const handleUpdate = async (data: { name: string; email: string; hourly_rate: number }) => {
+  const handleUpdate = async (data: {
+    name: string;
+    email: string;
+    hourly_rate: number;
+    pay_cycle_interval: PayCycleInterval | "";
+    pay_cycle_start_date: string;
+  }) => {
     if (!editingClient) return;
     const result = await updateClient(editingClient.id, {
       name: data.name,
       email: data.email || null,
       hourly_rate: data.hourly_rate,
+      pay_cycle_interval: data.pay_cycle_interval || null,
+      pay_cycle_start_date: data.pay_cycle_start_date || null,
     });
     if (result.success) {
       setClients((prev) =>

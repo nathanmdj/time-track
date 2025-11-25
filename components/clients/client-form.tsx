@@ -12,12 +12,21 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import type { Client } from "@/lib/supabase/types";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import type { Client, PayCycleInterval } from "@/lib/supabase/types";
 
 interface ClientFormData {
   name: string;
   email: string;
   hourly_rate: number;
+  pay_cycle_interval: PayCycleInterval | "";
+  pay_cycle_start_date: string;
 }
 
 interface ClientFormProps {
@@ -31,6 +40,8 @@ const initialFormData: ClientFormData = {
   name: "",
   email: "",
   hourly_rate: 0,
+  pay_cycle_interval: "",
+  pay_cycle_start_date: "",
 };
 
 export function ClientForm({ open, onOpenChange, onSubmit, client }: ClientFormProps) {
@@ -43,6 +54,8 @@ export function ClientForm({ open, onOpenChange, onSubmit, client }: ClientFormP
         name: client.name,
         email: client.email ?? "",
         hourly_rate: client.hourly_rate,
+        pay_cycle_interval: client.pay_cycle_interval ?? "",
+        pay_cycle_start_date: client.pay_cycle_start_date ?? "",
       });
     } else {
       setFormData(initialFormData);
@@ -56,6 +69,8 @@ export function ClientForm({ open, onOpenChange, onSubmit, client }: ClientFormP
       await onSubmit({
         ...formData,
         email: formData.email || "",
+        pay_cycle_interval: formData.pay_cycle_interval || "",
+        pay_cycle_start_date: formData.pay_cycle_start_date || "",
       });
       onOpenChange(false);
     } catch (error) {
@@ -113,6 +128,35 @@ export function ClientForm({ open, onOpenChange, onSubmit, client }: ClientFormP
                 required
               />
             </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="pay_cycle_interval">Pay Cycle</Label>
+              <Select
+                value={formData.pay_cycle_interval}
+                onValueChange={(value) => handleChange("pay_cycle_interval", value)}
+              >
+                <SelectTrigger id="pay_cycle_interval">
+                  <SelectValue placeholder="Select pay cycle (optional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="biweekly">Bi-weekly (2 weeks)</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {formData.pay_cycle_interval && (
+              <div className="grid gap-2">
+                <Label htmlFor="pay_cycle_start_date">Pay Cycle Start Date</Label>
+                <Input
+                  id="pay_cycle_start_date"
+                  type="date"
+                  value={formData.pay_cycle_start_date}
+                  onChange={(e) => handleChange("pay_cycle_start_date", e.target.value)}
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
