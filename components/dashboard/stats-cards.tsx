@@ -2,8 +2,9 @@ import { Clock, DollarSign, Users, Calendar } from "lucide-react";
 import { StatCard } from "@/components/shared";
 import {
   calculateTotalHours,
-  calculateTotalEarnings,
   filterEntriesThisMonth,
+  calculateTotalEarnings,
+  calculatePayCycleEarnings,
 } from "@/lib/utils/calculations";
 import { formatCurrency, formatHours } from "@/lib/utils/format";
 import type { Client, TimeEntry } from "@/lib/supabase/types";
@@ -16,11 +17,14 @@ interface StatsCardsProps {
 export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
   const completedEntries = timeEntries.filter((e) => e.duration_minutes);
   const totalHours = calculateTotalHours(completedEntries);
-  const totalEarnings = calculateTotalEarnings(completedEntries, clients);
 
   const thisMonthEntries = filterEntriesThisMonth(completedEntries);
   const thisMonthHours = calculateTotalHours(thisMonthEntries);
   const thisMonthEarnings = calculateTotalEarnings(thisMonthEntries, clients);
+
+  // Calculate pay cycle earnings
+  const { totalEarnings: payCycleEarnings, periodLabel } =
+    calculatePayCycleEarnings(completedEntries, clients);
 
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -31,9 +35,9 @@ export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
         icon={Clock}
       />
       <StatCard
-        title="Total Earnings"
-        value={formatCurrency(totalEarnings)}
-        subtitle="All time"
+        title="Pay Cycle"
+        value={formatCurrency(payCycleEarnings)}
+        subtitle={periodLabel}
         icon={DollarSign}
         valueClassName="text-green-600"
       />
