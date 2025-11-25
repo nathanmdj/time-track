@@ -25,8 +25,9 @@ interface TimeEntryFormData {
   client_id: string;
   description: string;
   date: string;
-  hours: string;
-  minutes: string;
+  start_time: string;
+  end_time: string;
+  break_minutes: string;
 }
 
 interface TimeEntryFormProps {
@@ -44,12 +45,14 @@ interface TimeEntryFormProps {
 
 export function TimeEntryForm({ open, onOpenChange, onSubmit, clients }: TimeEntryFormProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState<TimeEntryFormData>({
     client_id: "",
     description: "",
     date: new Date().toISOString().split("T")[0],
-    hours: "",
-    minutes: "",
+    start_time: "09:00",
+    end_time: "17:00",
+    break_minutes: "0",
   });
 
   const resetForm = () => {
@@ -57,39 +60,56 @@ export function TimeEntryForm({ open, onOpenChange, onSubmit, clients }: TimeEnt
       client_id: "",
       description: "",
       date: new Date().toISOString().split("T")[0],
-      hours: "",
-      minutes: "",
+      start_time: "09:00",
+      end_time: "17:00",
+      break_minutes: "0",
     });
+    setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setError(null);
 
     try {
-      const totalMinutes =
-        (parseInt(formData.hours) || 0) * 60 + (parseInt(formData.minutes) || 0);
+      const startTime = new Date(`${formData.date}T${formData.start_time}:00`);
+      const endTime = new Date(`${formData.date}T${formData.end_time}:00`);
+      const breakMinutes = parseInt(formData.break_minutes) || 0;
 
-      if (totalMinutes <= 0) {
-        alert("Please enter a valid duration");
+      if (endTime <= startTime) {
+        setError("End time must be after start time");
         return;
       }
 
-      const startTime = new Date(`${formData.date}T09:00:00`);
-      const endTime = new Date(startTime.getTime() + totalMinutes * 60 * 1000);
+      const totalMs = endTime.getTime() - startTime.getTime();
+      const totalMinutes = Math.floor(totalMs / (1000 * 60));
+
+      if (breakMinutes < 0) {
+        setError("Break time cannot be negative");
+        return;
+      }
+
+      if (breakMinutes >= totalMinutes) {
+        setError("Break time cannot exceed or equal the total work duration");
+        return;
+      }
+
+      const durationMinutes = totalMinutes - breakMinutes;
 
       await onSubmit({
         client_id: formData.client_id,
         description: formData.description || null,
         start_time: startTime.toISOString(),
         end_time: endTime.toISOString(),
-        duration_minutes: totalMinutes,
+        duration_minutes: durationMinutes,
       });
 
       onOpenChange(false);
       resetForm();
     } catch (error) {
       console.error("Failed to save time entry:", error);
+      setError("Failed to save time entry");
     } finally {
       setIsLoading(false);
     }
@@ -140,29 +160,37 @@ export function TimeEntryForm({ open, onOpenChange, onSubmit, clients }: TimeEnt
 
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
-                <Label htmlFor="entry-hours">Hours</Label>
+                <Label htmlFor="entry-start-time">Start Time *</Label>
                 <Input
-                  id="entry-hours"
-                  type="number"
-                  min="0"
-                  max="24"
-                  value={formData.hours}
-                  onChange={(e) => handleChange("hours", e.target.value)}
-                  placeholder="0"
+                  id="entry-start-time"
+                  type="time"
+                  value={formData.start_time}
+                  onChange={(e) => handleChange("start_time", e.target.value)}
+                  required
                 />
               </div>
               <div className="grid gap-2">
-                <Label htmlFor="entry-minutes">Minutes</Label>
+                <Label htmlFor="entry-end-time">End Time *</Label>
                 <Input
-                  id="entry-minutes"
-                  type="number"
-                  min="0"
-                  max="59"
-                  value={formData.minutes}
-                  onChange={(e) => handleChange("minutes", e.target.value)}
-                  placeholder="0"
+                  id="entry-end-time"
+                  type="time"
+                  value={formData.end_time}
+                  onChange={(e) => handleChange("end_time", e.target.value)}
+                  required
                 />
               </div>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="entry-break">Break (minutes)</Label>
+              <Input
+                id="entry-break"
+                type="number"
+                min="0"
+                value={formData.break_minutes}
+                onChange={(e) => handleChange("break_minutes", e.target.value)}
+                placeholder="0"
+              />
             </div>
 
             <div className="grid gap-2">
@@ -174,6 +202,10 @@ export function TimeEntryForm({ open, onOpenChange, onSubmit, clients }: TimeEnt
                 placeholder="What did you work on?"
               />
             </div>
+
+            {error && (
+              <p className="text-sm text-red-500">{error}</p>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
