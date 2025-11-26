@@ -65,6 +65,42 @@ export function filterEntriesThisMonth(timeEntries: TimeEntry[]): TimeEntry[] {
 }
 
 /**
+ * Filter time entries for current shift (6am to 6am next day)
+ * If current time is before 6am, includes entries from 6am yesterday to now
+ * If current time is after 6am, includes entries from 6am today to now
+ */
+export function filterEntriesCurrentShift(timeEntries: TimeEntry[]): TimeEntry[] {
+  const now = new Date();
+  const currentHour = now.getHours();
+
+  // Determine shift start time
+  const shiftStart = new Date(now);
+  if (currentHour < 6) {
+    // Before 6am - shift started yesterday at 6am
+    shiftStart.setDate(shiftStart.getDate() - 1);
+  }
+  shiftStart.setHours(6, 0, 0, 0);
+
+  // Shift end is 6am the next day
+  const shiftEnd = new Date(shiftStart);
+  shiftEnd.setDate(shiftEnd.getDate() + 1);
+
+  return timeEntries.filter((entry) => {
+    if (!entry.duration_minutes) return false;
+    const entryDate = new Date(entry.start_time);
+    return entryDate >= shiftStart && entryDate < shiftEnd;
+  });
+}
+
+/**
+ * Calculate current shift total hours (from 6am to now)
+ */
+export function calculateCurrentShiftHours(timeEntries: TimeEntry[]): number {
+  const shiftEntries = filterEntriesCurrentShift(timeEntries);
+  return calculateTotalHours(shiftEntries);
+}
+
+/**
  * Get client summary with hours and earnings
  */
 export interface ClientSummary {

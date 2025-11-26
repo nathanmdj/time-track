@@ -1,6 +1,7 @@
 import { Clock, DollarSign, Users, Calendar } from "lucide-react";
 import { StatCard } from "@/components/shared";
 import {
+  calculateCurrentShiftHours,
   calculateTotalHours,
   filterEntriesThisMonth,
   calculateTotalEarnings,
@@ -16,7 +17,7 @@ interface StatsCardsProps {
 
 export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
   const completedEntries = timeEntries.filter((e) => e.duration_minutes);
-  const totalHours = calculateTotalHours(completedEntries);
+  const currentShiftHours = calculateCurrentShiftHours(completedEntries);
 
   const thisMonthEntries = filterEntriesThisMonth(completedEntries);
   const thisMonthHours = calculateTotalHours(thisMonthEntries);
@@ -29,9 +30,9 @@ export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
-        title="Total Hours"
-        value={formatHours(totalHours)}
-        subtitle="All time"
+        title="Current Shift"
+        value={formatHours(currentShiftHours)}
+        subtitle="Today's hours"
         icon={Clock}
       />
       <StatCard
