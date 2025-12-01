@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ClientList } from "@/components/clients/client-list";
 import { TimeEntryList } from "@/components/time-entries/time-entry-list";
 import { EarningsSummary } from "@/components/dashboard/earnings-summary";
+import { ShiftReport } from "@/components/dashboard/shift-report";
 import type { Client, TimeEntry, TimeEntryWithClient } from "@/lib/supabase/types";
 
 interface DashboardTabsProps {
@@ -25,6 +26,7 @@ export function DashboardTabs({
         <TabsTrigger value="time">Time Tracking</TabsTrigger>
         <TabsTrigger value="clients">Clients</TabsTrigger>
         <TabsTrigger value="earnings">Earnings</TabsTrigger>
+        <TabsTrigger value="reports">Reports</TabsTrigger>
       </TabsList>
 
       <TabsContent value="time" className="space-y-6">
@@ -37,6 +39,10 @@ export function DashboardTabs({
 
       <TabsContent value="earnings">
         <EarningsSummary clients={clients} timeEntries={timeEntries} />
+      </TabsContent>
+
+      <TabsContent value="reports">
+        <ShiftReport clients={clients} timeEntries={timeEntries} />
       </TabsContent>
     </Tabs>
   );
