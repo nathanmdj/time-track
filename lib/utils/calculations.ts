@@ -270,3 +270,166 @@ export function calculatePayCycleEarnings(
 
   return { totalEarnings, periodLabel };
 }
+
+/**
+ * Get shift start time for a given date (6am on that date)
+ */
+function getShiftStartTime(date: Date): Date {
+  const shiftStart = new Date(date);
+  shiftStart.setHours(6, 0, 0, 0);
+  return shiftStart;
+}
+
+/**
+ * Get the shift date for a given timestamp
+ * If time is before 6am, it belongs to previous day's shift
+ */
+function getShiftDate(timestamp: Date): Date {
+  const date = new Date(timestamp);
+  const shiftDate = new Date(date);
+
+  // If before 6am, this entry belongs to previous day's shift
+  if (date.getHours() < 6) {
+    shiftDate.setDate(shiftDate.getDate() - 1);
+  }
+
+  // Set to start of shift (6am)
+  shiftDate.setHours(6, 0, 0, 0);
+  return shiftDate;
+}
+
+/**
+ * Client hours within a shift
+ */
+export interface ShiftClientBreakdown {
+  client: Client;
+  hours: number;
+  entries: TimeEntry[];
+}
+
+/**
+ * Summary of hours worked in a single shift
+ */
+export interface ShiftSummary {
+  shiftDate: Date;
+  shiftStart: Date;
+  shiftEnd: Date;
+  actualStartTime: Date;
+  actualEndTime: Date;
+  totalHours: number;
+  breakHours: number;
+  clientBreakdown: ShiftClientBreakdown[];
+}
+
+/**
+ * Group time entries by shift (6am to 6am) and calculate hours per shift
+ */
+export function groupTimeEntriesByShift(
+  timeEntries: TimeEntry[],
+  clients: Client[]
+): ShiftSummary[] {
+  const completedEntries = timeEntries.filter((e) => e.duration_minutes);
+
+  // Group entries by shift date
+  const shiftMap = new Map<string, TimeEntry[]>();
+
+  for (const entry of completedEntries) {
+    const shiftDate = getShiftDate(new Date(entry.start_time));
+    const shiftKey = shiftDate.toISOString();
+
+    if (!shiftMap.has(shiftKey)) {
+      shiftMap.set(shiftKey, []);
+    }
+    shiftMap.get(shiftKey)!.push(entry);
+  }
+
+  // Convert to ShiftSummary array
+  const shifts: ShiftSummary[] = [];
+
+  for (const [shiftKey, entries] of shiftMap.entries()) {
+    const shiftDate = new Date(shiftKey);
+    const shiftStart = getShiftStartTime(shiftDate);
+    const shiftEnd = new Date(shiftStart);
+    shiftEnd.setDate(shiftEnd.getDate() + 1);
+
+    // Find actual start and end times from entries
+    let actualStartTime: Date | null = null;
+    let actualEndTime: Date | null = null;
+
+    for (const entry of entries) {
+      const entryStart = new Date(entry.start_time);
+      const entryEnd = entry.end_time ? new Date(entry.end_time) : null;
+
+      if (!actualStartTime || entryStart < actualStartTime) {
+        actualStartTime = entryStart;
+      }
+
+      if (entryEnd) {
+        if (!actualEndTime || entryEnd > actualEndTime) {
+          actualEndTime = entryEnd;
+        }
+      }
+    }
+
+    // Fallback if no end times found
+    if (!actualEndTime && actualStartTime) {
+      actualEndTime = actualStartTime;
+    }
+
+    // Group by client
+    const clientMap = new Map<string, TimeEntry[]>();
+    for (const entry of entries) {
+      if (!clientMap.has(entry.client_id)) {
+        clientMap.set(entry.client_id, []);
+      }
+      clientMap.get(entry.client_id)!.push(entry);
+    }
+
+    // Calculate client breakdown
+    const clientBreakdown: ShiftClientBreakdown[] = [];
+    let totalHours = 0;
+
+    for (const [clientId, clientEntries] of clientMap.entries()) {
+      const client = clients.find((c) => c.id === clientId);
+      if (!client) continue;
+
+      const hours = clientEntries.reduce(
+        (sum, e) => sum + (e.duration_minutes ?? 0) / 60,
+        0
+      );
+      totalHours += hours;
+
+      clientBreakdown.push({
+        client,
+        hours,
+        entries: clientEntries,
+      });
+    }
+
+    // Sort by hours descending
+    clientBreakdown.sort((a, b) => b.hours - a.hours);
+
+    // Calculate break hours (total time span - hours worked)
+    const actualStart = actualStartTime || shiftStart;
+    const actualEnd = actualEndTime || shiftEnd;
+    const totalTimeSpanHours =
+      (actualEnd.getTime() - actualStart.getTime()) / (1000 * 60 * 60);
+    const breakHours = Math.max(0, totalTimeSpanHours - totalHours);
+
+    shifts.push({
+      shiftDate,
+      shiftStart,
+      shiftEnd,
+      actualStartTime: actualStart,
+      actualEndTime: actualEnd,
+      totalHours,
+      breakHours,
+      clientBreakdown,
+    });
+  }
+
+  // Sort shifts by date ascending (oldest first)
+  shifts.sort((a, b) => a.shiftDate.getTime() - b.shiftDate.getTime());
+
+  return shifts;
+}
