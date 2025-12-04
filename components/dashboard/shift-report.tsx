@@ -14,7 +14,6 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/shared";
 import {
   groupTimeEntriesByShift,
-  filterEntriesInDateRange,
   getDefaultPayPeriodRange,
 } from "@/lib/utils/calculations";
 import { formatHours } from "@/lib/utils/format";
@@ -34,14 +33,26 @@ export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
   const [startDate, setStartDate] = useState<Date | undefined>(defaultRange.start);
   const [endDate, setEndDate] = useState<Date | undefined>(defaultRange.end);
 
-  const filteredEntries = useMemo(() => {
-    if (!startDate || !endDate) {
-      return timeEntries;
-    }
-    return filterEntriesInDateRange(timeEntries, startDate, endDate);
-  }, [timeEntries, startDate, endDate]);
+  const shifts = useMemo(() => {
+    const allShifts = groupTimeEntriesByShift(timeEntries, clients);
 
-  const shifts = groupTimeEntriesByShift(filteredEntries, clients);
+    if (!startDate || !endDate) {
+      return allShifts;
+    }
+
+    // Filter shifts by their shift date (not entry start time)
+    // This ensures shifts are properly excluded based on when the shift occurred
+    const normalizedStart = new Date(startDate);
+    normalizedStart.setHours(0, 0, 0, 0);
+    const normalizedEnd = new Date(endDate);
+    normalizedEnd.setHours(23, 59, 59, 999);
+
+    return allShifts.filter((shift) => {
+      const shiftDateOnly = new Date(shift.shiftDate);
+      shiftDateOnly.setHours(0, 0, 0, 0);
+      return shiftDateOnly >= normalizedStart && shiftDateOnly <= normalizedEnd;
+    });
+  }, [timeEntries, clients, startDate, endDate]);
   const totalHours = shifts.reduce((sum, shift) => sum + shift.totalHours, 0);
 
   const formatPeriodLabel = () => {
