@@ -1,3 +1,6 @@
+"use client";
+
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -7,8 +10,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { DatePicker } from "@/components/ui/date-picker";
 import { EmptyState } from "@/components/shared";
-import { groupTimeEntriesByShift } from "@/lib/utils/calculations";
+import {
+  groupTimeEntriesByShift,
+  filterEntriesInDateRange,
+  getDefaultPayPeriodRange,
+} from "@/lib/utils/calculations";
 import { formatHours } from "@/lib/utils/format";
 import type { Client, TimeEntry } from "@/lib/supabase/types";
 
@@ -18,17 +26,62 @@ interface ShiftReportProps {
 }
 
 export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
-  const shifts = groupTimeEntriesByShift(timeEntries, clients);
+  const defaultRange = useMemo(() => {
+    const { start, end } = getDefaultPayPeriodRange(clients);
+    return { start, end };
+  }, [clients]);
+
+  const [startDate, setStartDate] = useState<Date | undefined>(defaultRange.start);
+  const [endDate, setEndDate] = useState<Date | undefined>(defaultRange.end);
+
+  const filteredEntries = useMemo(() => {
+    if (!startDate || !endDate) {
+      return timeEntries;
+    }
+    return filterEntriesInDateRange(timeEntries, startDate, endDate);
+  }, [timeEntries, startDate, endDate]);
+
+  const shifts = groupTimeEntriesByShift(filteredEntries, clients);
   const totalHours = shifts.reduce((sum, shift) => sum + shift.totalHours, 0);
+
+  const formatPeriodLabel = () => {
+    if (!startDate || !endDate) return "";
+    const from = startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const to = endDate.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    return `${from} - ${to}`;
+  };
 
   if (shifts.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Hours by Shift</CardTitle>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <CardTitle>Hours by Shift</CardTitle>
+              {startDate && endDate && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formatPeriodLabel()}
+                </p>
+              )}
+            </div>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <DatePicker
+                date={startDate}
+                onDateChange={setStartDate}
+                placeholder="Start date"
+                className="w-full sm:w-[150px]"
+              />
+              <DatePicker
+                date={endDate}
+                onDateChange={setEndDate}
+                placeholder="End date"
+                className="w-full sm:w-[150px]"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <EmptyState title="No completed time entries yet" />
+          <EmptyState title="No completed time entries for selected period" />
         </CardContent>
       </Card>
     );
@@ -60,7 +113,30 @@ export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Hours by Shift</CardTitle>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>Hours by Shift</CardTitle>
+            {startDate && endDate && (
+              <p className="text-sm text-muted-foreground mt-1">
+                {formatPeriodLabel()}
+              </p>
+            )}
+          </div>
+          <div className="flex flex-col sm:flex-row gap-2">
+            <DatePicker
+              date={startDate}
+              onDateChange={setStartDate}
+              placeholder="Start date"
+              className="w-full sm:w-[150px]"
+            />
+            <DatePicker
+              date={endDate}
+              onDateChange={setEndDate}
+              placeholder="End date"
+              className="w-full sm:w-[150px]"
+            />
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <Table>
