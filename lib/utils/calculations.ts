@@ -214,6 +214,50 @@ export function filterEntriesInDateRange(
 }
 
 /**
+ * Get the default pay period date range across all clients
+ * Returns the union of all client pay periods (earliest start to latest end)
+ * If no clients have pay cycles configured, returns current month
+ */
+export function getDefaultPayPeriodRange(
+  clients: Client[]
+): { start: Date; end: Date } {
+  let earliestStart: Date | null = null;
+  let latestEnd: Date | null = null;
+
+  for (const client of clients) {
+    if (!client.pay_cycle_interval || !client.pay_cycle_start_date) {
+      continue;
+    }
+
+    const period = getPayCyclePeriod(
+      client.pay_cycle_interval,
+      client.pay_cycle_start_date
+    );
+
+    if (!earliestStart || period.start < earliestStart) {
+      earliestStart = period.start;
+    }
+    if (!latestEnd || period.end > latestEnd) {
+      latestEnd = period.end;
+    }
+  }
+
+  // Fallback to current month if no pay cycles configured
+  if (!earliestStart || !latestEnd) {
+    const now = new Date();
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    start.setHours(0, 0, 0, 0);
+
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    end.setHours(23, 59, 59, 999);
+
+    return { start, end };
+  }
+
+  return { start: earliestStart, end: latestEnd };
+}
+
+/**
  * Calculate pay cycle earnings across all clients
  * Returns earnings for entries within each client's current pay cycle
  */
