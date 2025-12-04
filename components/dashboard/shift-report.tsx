@@ -11,6 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { DatePicker } from "@/components/ui/date-picker";
+import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/shared";
 import {
   groupTimeEntriesByShift,
@@ -18,6 +19,7 @@ import {
 } from "@/lib/utils/calculations";
 import { formatHours } from "@/lib/utils/format";
 import type { Client, TimeEntry } from "@/lib/supabase/types";
+import { RotateCcw } from "lucide-react";
 
 interface ShiftReportProps {
   clients: Client[];
@@ -32,6 +34,11 @@ export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
 
   const [startDate, setStartDate] = useState<Date | undefined>(defaultRange.start);
   const [endDate, setEndDate] = useState<Date | undefined>(defaultRange.end);
+
+  const handleResetToPayPeriod = () => {
+    setStartDate(defaultRange.start);
+    setEndDate(defaultRange.end);
+  };
 
   const shifts = useMemo(() => {
     const allShifts = groupTimeEntriesByShift(timeEntries, clients);
@@ -66,28 +73,38 @@ export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
     return (
       <Card>
         <CardHeader>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <CardTitle>Hours by Shift</CardTitle>
-              {startDate && endDate && (
-                <p className="text-sm text-muted-foreground mt-1">
-                  {formatPeriodLabel()}
-                </p>
-              )}
+          <div className="space-y-4">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Hours by Shift</CardTitle>
+                {startDate && endDate && (
+                  <p className="text-sm text-muted-foreground mt-1">
+                    {formatPeriodLabel()}
+                  </p>
+                )}
+              </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2">
+            <div className="flex flex-wrap gap-2">
               <DatePicker
                 date={startDate}
                 onDateChange={setStartDate}
                 placeholder="Start date"
-                className="w-full sm:w-[150px]"
+                className="w-auto"
               />
               <DatePicker
                 date={endDate}
                 onDateChange={setEndDate}
                 placeholder="End date"
-                className="w-full sm:w-[150px]"
+                className="w-auto"
               />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleResetToPayPeriod}
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reset
+              </Button>
             </div>
           </div>
         </CardHeader>
@@ -124,28 +141,38 @@ export function ShiftReport({ clients, timeEntries }: ShiftReportProps) {
   return (
     <Card>
       <CardHeader>
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <CardTitle>Hours by Shift</CardTitle>
-            {startDate && endDate && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {formatPeriodLabel()}
-              </p>
-            )}
+        <div className="space-y-4">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <CardTitle>Hours by Shift</CardTitle>
+              {startDate && endDate && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  {formatPeriodLabel()}
+                </p>
+              )}
+            </div>
           </div>
-          <div className="flex flex-col sm:flex-row gap-2">
+          <div className="flex flex-wrap gap-2">
             <DatePicker
               date={startDate}
               onDateChange={setStartDate}
               placeholder="Start date"
-              className="w-full sm:w-[150px]"
+              className="w-auto"
             />
             <DatePicker
               date={endDate}
               onDateChange={setEndDate}
               placeholder="End date"
-              className="w-full sm:w-[150px]"
+              className="w-auto"
             />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleResetToPayPeriod}
+            >
+              <RotateCcw className="h-4 w-4 mr-2" />
+              Reset
+            </Button>
           </div>
         </div>
       </CardHeader>
