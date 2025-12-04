@@ -1,3 +1,5 @@
+"use client";
+
 import { Clock, DollarSign, Users, Calendar } from "lucide-react";
 import { StatCard } from "@/components/shared";
 import {
@@ -8,6 +10,7 @@ import {
   calculatePayCycleEarnings,
 } from "@/lib/utils/calculations";
 import { formatCurrency, formatHours } from "@/lib/utils/format";
+import { useExchangeRate } from "@/lib/hooks/use-exchange-rate";
 import type { Client, TimeEntry } from "@/lib/supabase/types";
 
 interface StatsCardsProps {
@@ -27,6 +30,11 @@ export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
   const { totalEarnings: payCycleEarnings, periodLabel } =
     calculatePayCycleEarnings(completedEntries, clients);
 
+  // Get live USD to PHP exchange rate
+  const { convertToPhp, formatPhp, isLoading: rateLoading } = useExchangeRate();
+  const thisMonthEarningsPhp = convertToPhp(thisMonthEarnings);
+  const payCycleEarningsPhp = convertToPhp(payCycleEarnings);
+
   return (
     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
       <StatCard
@@ -37,7 +45,7 @@ export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
       />
       <StatCard
         title="Pay Cycle"
-        value={formatCurrency(payCycleEarnings)}
+        value={rateLoading ? "..." : formatPhp(payCycleEarningsPhp)}
         subtitle={periodLabel}
         icon={DollarSign}
         valueClassName="text-green-600"
@@ -45,7 +53,11 @@ export function StatsCards({ clients, timeEntries }: StatsCardsProps) {
       <StatCard
         title="This Month"
         value={`${formatHours(thisMonthHours)}h`}
-        subtitle={`${formatCurrency(thisMonthEarnings)} earned`}
+        subtitle={
+          rateLoading
+            ? "Loading rate..."
+            : `${formatPhp(thisMonthEarningsPhp)} earned`
+        }
         icon={Calendar}
       />
       <StatCard
